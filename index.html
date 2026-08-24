@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>ジャズのりずむアプリ _v09</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: #fff9e6;
+      color: #2b2d42;
+      padding: 12px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      color: #e63946;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    .app-layout {
+      display: flex;
+      flex-direction: row;
+      gap: 16px;
+      width: 100%;
+      max-width: 920px;
+      align-items: flex-start;
+    }
+
+    @media (max-width: 720px) {
+      .app-layout {
+        flex-direction: column;
+        align-items: center;
+      }
+    }
+
+    .panel-card {
+      flex: 1;
+      width: 100%;
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 14px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .rhythm-card {
+      border: 3px solid #ffb703;
+    }
+
+    .section-title {
+      font-size: 1.05rem;
+      font-weight: bold;
+      color: #1d3557;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+
+    .setting-box {
+      width: 100%;
+      background: #f8f9fa;
+      border: 2px dashed #ffb703;
+      border-radius: 12px;
+      padding: 8px;
+      margin-bottom: 10px;
+    }
+
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      gap: 4px;
+    }
+    .setting-row:last-child { margin-bottom: 0; }
+
+    .setting-label {
+      font-size: 0.8rem;
+      font-weight: bold;
+      color: #d8572a;
+      white-space: nowrap;
+    }
+
+    .btn-group-sm {
+      display: flex;
+      gap: 4px;
+      flex: 1;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .opt-btn {
+      padding: 5px 6px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      border: 2px solid #ccc;
+      border-radius: 8px;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    .opt-btn.active {
+      background: #ffb703;
+      color: #ffffff;
+      border-color: #fb8500;
+    }
+
+    .rhythm-select {
+      width: 100%;
+      padding: 8px;
+      font-size: 0.95rem;
+      font-weight: bold;
+      border: 2px solid #457b9d;
+      border-radius: 10px;
+      background: #fff;
+      color: #1d3557;
+      margin-bottom: 10px;
+      cursor: pointer;
+    }
+
+    .stage-container {
+      width: 100%;
+      height: 140px;
+      background: linear-gradient(to bottom, #1d3557 0%, #457b9d 100%);
+      border-radius: 18px;
+      position: relative;
+      overflow: hidden;
+      border: 4px solid #e63946;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px #9d0208;
+      outline: none;
+    }
+
+    .stage-container:focus {
+      border-color: #ffb703;
+      box-shadow: 0 0 16px #ffb703;
+    }
+
+    .stage-container:active {
+      background: linear-gradient(to bottom, #152942 0%, #355b9d 100%);
+    }
+
+    .stage-note {
+      font-size: 3rem;
+      transition: transform 0.08s ease-out;
+      z-index: 1;
+    }
+
+    .stage-note.bounce {
+      transform: scale(1.25);
+    }
+
+    .stage-note.header-beat {
+      transform: scale(1.4);
+      filter: drop-shadow(0 0 10px #ffb703);
+    }
+
+    .tap-guide-text {
+      position: absolute;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: rgba(255, 255, 255, 0.95);
+      background-color: rgba(230, 57, 70, 0.85);
+      padding: 4px 16px;
+      border-radius: 20px;
+      pointer-events: none;
+      z-index: 5;
+      white-space: nowrap;
+    }
+
+    /* 疑似カーソル（指アイコン）アニメーション */
+    .visual-cursor {
+      position: absolute;
+      right: 20px;
+      top: 30%;
+      font-size: 2.2rem;
+      pointer-events: none;
+      z-index: 30;
+      opacity: 0;
+      transition: opacity 0.2s;
+      filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.5));
+    }
+
+    .visual-cursor.active {
+      opacity: 1;
+      animation: pointerJump 0.6s ease-in-out infinite alternate;
+    }
+
+    @keyframes pointerJump {
+      0% { transform: translateX(0) scale(1); }
+      100% { transform: translateX(-15px) scale(1.2); }
+    }
+
+    .feedback-msg {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #ffb703;
+      text-shadow: 2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s, transform 0.15s;
+      z-index: 20;
+      white-space: nowrap;
+    }
+
+    .feedback-msg.show {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1.1);
+    }
+
+    .streak-container {
+      width: 100%;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+
+    .streak-info {
+      font-size: 0.85rem;
+      font-weight: bold;
+      color: #2a9d8f;
+      margin-bottom: 4px;
+    }
+
+    .progress-bg {
+      width: 100%;
+      height: 14px;
+      background: #e9ecef;
+      border-radius: 7px;
+      overflow: hidden;
+      border: 1px solid #ced4da;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #ffb703, #e63946);
+      transition: width 0.2s ease-out;
+    }
+
+    .rhythm-info-box {
+      width: 100%;
+      background: #f0f7ff;
+      border: 2px solid #a8dadc;
+      border-radius: 12px;
+      padding: 10px;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    .rhythm-name {
+      font-size: 1rem;
+      font-weight: bold;
+      color: #e63946;
+    }
+
+    .rhythm-pattern {
+      font-size: 0.95rem;
+      font-weight: bold;
+      color: #1d3557;
+      margin: 3px 0;
+      background: #ffffff;
+      padding: 4px 8px;
+      border-radius: 6px;
+      display: inline-block;
+    }
+
+    #pattern-head {
+      display: inline-block;
+      padding: 0 4px;
+      border-radius: 4px;
+      transition: all 0.08s ease-out;
+    }
+
+    #pattern-head.flash {
+      background-color: #ffb703;
+      color: #d8572a;
+      transform: scale(1.25);
+      box-shadow: 0 0 8px rgba(255, 183, 3, 0.8);
+    }
+
+    .rhythm-image {
+      font-size: 0.8rem;
+      color: #457b9d;
+    }
+
+    .control-group {
+      display: flex;
+      gap: 4px;
+      width: 100%;
+      margin-bottom: 10px;
+    }
+
+    .ctrl-btn {
+      flex: 1;
+      padding: 8px 2px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      color: white;
+      box-shadow: 0 3px #0002;
+      white-space: nowrap;
+    }
+
+    .ctrl-btn:active { transform: translateY(2px); box-shadow: none; }
+    
+    .btn-toggle-playing { background: #e63946; }
+    .btn-toggle-paused { background: #2a9d8f; }
+    .btn-prev { background: #f4a261; }
+    .btn-next { background: #e07a5f; }
+    .btn-change { background: #457b9d; }
+
+    .btn-end-app {
+      width: 100%;
+      padding: 8px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      background: #6c757d;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .clock-card {
+      border: 3px solid #457b9d;
+    }
+
+    .clock-container {
+      width: 100%;
+      max-width: 250px;
+      aspect-ratio: 1 / 1;
+      position: relative;
+      margin: 8px 0;
+    }
+
+    .time-text-display {
+      font-size: 1.05rem;
+      font-weight: bold;
+      color: #1d3557;
+      margin-top: 6px;
+      text-align: center;
+      background: #f0f7ff;
+      padding: 6px 12px;
+      border-radius: 18px;
+      border: 1px solid #a8dadc;
+    }
+
+    .overlay-modal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.65);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      padding: 16px;
+    }
+
+    .modal-box {
+      background: white;
+      border: 5px solid #ffb703;
+      border-radius: 24px;
+      padding: 24px 20px;
+      text-align: center;
+      width: 100%;
+      max-width: 320px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .modal-title {
+      font-size: 1.8rem;
+      color: #e63946;
+      font-weight: bold;
+      margin-bottom: 12px;
+    }
+
+    .modal-close-btn {
+      background: #2a9d8f;
+      color: white;
+      font-size: 1rem;
+      font-weight: bold;
+      padding: 10px 24px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0.5); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    #effect-canvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 201;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🎷 ジャズのりずむあぷり _v09 🥁</h1>
+
+  <div class="app-layout">
+    
+    <div class="panel-card rhythm-card">
+      <div class="section-title">🎵 りずむを えらんでね</div>
+
+      <div class="setting-box">
+        <div class="setting-row">
+          <div class="setting-label">おと：</div>
+          <div class="btn-group-sm">
+            <button class="opt-btn active" onclick="setInstrument('taiko', this)">🥁たいこ</button>
+            <button class="opt-btn" onclick="setInstrument('piano', this)">🎹ぴあの</button>
+            <button class="opt-btn" onclick="setInstrument('rappa', this)">🎺らっぱ</button>
+            <button class="opt-btn" onclick="setInstrument('kotori', this)">🐤ことり</button>
+            <button class="opt-btn" onclick="setInstrument('inu', this)">🐶いぬ</button>
+          </div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-label">むずかしさ：</div>
+          <div class="btn-group-sm">
+            <button class="opt-btn active" onclick="setDifficulty('easy', this)">ゆるめ</button>
+            <button class="opt-btn" onclick="setDifficulty('normal', this)">ふつう</button>
+            <button class="opt-btn" onclick="setDifficulty('hard', this)">きびしめ</button>
+          </div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-label">がいど：</div>
+          <div class="btn-group-sm">
+            <button class="opt-btn active" onclick="setGuide('tokidoki', this)">ときどき</button>
+            <button class="opt-btn" onclick="setGuide('futsuu', this)">ふつう</button>
+            <button class="opt-btn" onclick="setGuide('shibashiba', this)">しばしば</button>
+            <button class="opt-btn" onclick="setGuide('nashi', this)">なし</button>
+          </div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-label">てんぽ：</div>
+          <div class="btn-group-sm">
+            <button class="opt-btn" onclick="setTempo('slow', this)">ゆっくり</button>
+            <button class="opt-btn active" onclick="setTempo('normal', this)">ふつう</button>
+            <button class="opt-btn" onclick="setTempo('fast', this)">はやく</button>
+          </div>
+        </div>
+      </div>
+
+      <select class="rhythm-select" id="rhythm-select" onchange="onRhythmSelectChange()">
+        <option value="">-- 全30種類のりずむを えらんでね --</option>
+      </select>
+
+      <div class="stage-container" id="stage-area" tabindex="0" onclick="handleTap()">
+        <div class="stage-note" id="stage-note">🎷</div>
+        <div class="tap-guide-text">🎵 ここを りずむで ぽん！</div>
+        <div class="visual-cursor" id="visual-cursor">👈</div>
+        <div class="feedback-msg" id="feedback-msg">⭐ 4しょうせつ たっせい！ ⭐</div>
+      </div>
+
+      <div class="streak-container">
+        <div class="streak-info" id="streak-text">4しょうせつ つづけて りずむに のろう！ (0 / 4しょうせつ)</div>
+        <div class="progress-bg">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+      </div>
+
+      <div class="rhythm-info-box">
+        <div class="rhythm-name" id="disp-name">りずむを えらんでね</div>
+        <div class="rhythm-pattern" id="disp-pattern">おとが なります</div>
+        <div class="rhythm-image" id="disp-image">4しょうせつ つづけて 叩くと ファンファーレがなるよ！</div>
+      </div>
+
+      <div class="control-group">
+        <button class="ctrl-btn btn-toggle-playing" id="btn-toggle" onclick="togglePlayPause()">⏹ ていし</button>
+        <button class="ctrl-btn btn-prev" onclick="prevRhythm()">⏮ まえのりずむ</button>
+        <button class="ctrl-btn btn-next" onclick="nextRhythm()">⏭ つぎのりずむ</button>
+        <button class="ctrl-btn btn-change" onclick="randomRhythm()">🎲 べつのりずむ</button>
+      </div>
+
+      <button class="btn-end-app" onclick="endApp()">りずむあぷりをおえる</button>
+    </div>
+
+    <div class="panel-card clock-card">
+      <div class="section-title">⏰ とけい</div>
+      
+      <div class="clock-container">
+        <svg viewBox="0 0 200 200" width="100%" height="100%">
+          <circle cx="100" cy="100" r="95" fill="#ffffff" stroke="#1d3557" stroke-width="5"/>
+          <g id="clock-face"></g>
+          <line id="hour-hand" x1="100" y1="100" x2="100" y2="55" stroke="#e63946" stroke-width="8" stroke-linecap="round"/>
+          <line id="minute-hand" x1="100" y1="100" x2="100" y2="30" stroke="#1d3557" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="100" cy="100" r="6" fill="#1d3557"/>
+        </svg>
+      </div>
+
+      <div class="time-text-display" id="time-text-display">いま 0じ 0ふん です</div>
+    </div>
+
+  </div>
+
+  <div class="overlay-modal" id="overlay-modal">
+    <div class="modal-box">
+      <div class="modal-title">🎉 たのしかったね！</div>
+      <button class="modal-close-btn" onclick="closeModal()">もういちど あそぶ</button>
+    </div>
+  </div>
+
+  <canvas id="effect-canvas"></canvas>
+
+  <script>
+    /* ==========================================
+       1. 全30種類のリズムデータ（v09最新修正版）
+       ========================================== */
+    const M = 'main';
+    const S = 'sub';
+    const R = 'rest';
+
+    const rhythmList = [
+      { id: 1, name: "２ビート", pattern: "たん ちゃん たん ちゃん", image: "のんびりお散歩するような、ゆったりした基本のリズムです。", bpm: 90, 
+        notes: [{t:M, d:1}, {t:S, d:1}, {t:M, d:1}, {t:S, d:1}] },
+      { id: 2, name: "４ビート（スウィング）", pattern: "たーん ちゃちゃ たーん ちゃちゃ", image: "ジャズの代表格！軽やかに跳ねるリズムです。", bpm: 110, 
+        notes: [{t:M, d:1}, {t:S, d:0.6}, {t:S, d:0.4}, {t:M, d:1}, {t:S, d:0.6}, {t:S, d:0.4}] },
+      { id: 3, name: "８ビート", pattern: "たん ちゃん たんたん ちゃん", image: "ポップスでおなじみ。手拍子しやすいリズムです。", bpm: 105, 
+        notes: [{t:M, d:1}, {t:S, d:1}, {t:M, d:0.5}, {t:M, d:0.5}, {t:S, d:1}] },
+      { id: 4, name: "１６ビート", pattern: "たんちゃちゃちゃ たんちゃちゃちゃ", image: "細かい刻みがかっこいいノリノリなリズムです。", bpm: 95, 
+        notes: [{t:M, d:0.25}, {t:S, d:0.25}, {t:S, d:0.25}, {t:S, d:0.25}, {t:M, d:0.25}, {t:S, d:0.25}, {t:S, d:0.25}, {t:S, d:0.25}] },
+      { id: 5, name: "ボサノバ", pattern: "うん ちゃん ちゃん うん", image: "カフェで流れるようなゆったり南国ジャズです。", bpm: 110, 
+        notes: [{t:R, d:1}, {t:S, d:1}, {t:S, d:1}, {t:R, d:1}] },
+      { id: 6, name: "ブルース（シャッフル）", pattern: "たーっちゃ たーっちゃ", image: "汽車が弾みながら走るようなリズムです。", bpm: 100, 
+        notes: [{t:M, d:0.66}, {t:S, d:0.33}, {t:M, d:0.66}, {t:S, d:0.33}] },
+      { id: 7, name: "ファンク", pattern: "どんっ ちゃっ どどんっ ちゃっ", image: "キレのあるメリハリで踊りたくなるリズムです。", bpm: 100, 
+        notes: [{t:M, d:1}, {t:S, d:1}, {t:M, d:0.5}, {t:M, d:0.5}, {t:S, d:1}] },
+      { id: 8, name: "５拍子ジャズ", pattern: "たん たん たん ちゃん ちゃん", image: "1・2・3、1・2 と数えるおしゃれなジャズです。", bpm: 120, 
+        notes: [{t:M, d:1}, {t:M, d:1}, {t:M, d:1}, {t:S, d:1}, {t:S, d:1}] },
+      { id: 9, name: "タンゴ", pattern: "たん たん たん ちゃちゃちゃ", image: "情熱的！最後にピタッと止まるダンスです。", bpm: 115, 
+        notes: [{t:M, d:1}, {t:M, d:1}, {t:M, d:1}, {t:S, d:0.33}, {t:S, d:0.33}, {t:S, d:0.33}] },
+      { id: 10, name: "サルサ", pattern: "たん ちゃ たーん うん", image: "陽気でカラフル！身体をフリフリ動かしたくなるリズムです。", bpm: 170, 
+        notes: [{t:M, d:1}, {t:S, d:1}, {t:M, d:1.5}, {t:R, d:0.5}] },
+      { id: 11, name: "サンバ", pattern: "んちゃ たん んちゃ たん", image: "パレードでおなじみのお祭りリズムです。", bpm: 105, 
+        notes: [{t:R, d:0.5}, {t:S, d:0.5}, {t:M, d:1}, {t:R, d:0.5}, {t:S, d:0.5}, {t:M, d:1}] },
+      { id: 12, name: "マンボ", pattern: "うん ちゃん ちゃん うん", image: "「ウッ！マンボ！」と声を合わせたくなるリズムです。", bpm: 125, 
+        notes: [{t:R, d:1}, {t:S, d:1}, {t:S, d:1}, {t:R, d:1}] },
+      { id: 13, name: "ルンバ", pattern: "たん うん たん ちゃん", image: "ゆったり手をつないで踊るような優しいラテンです。", bpm: 100, 
+        notes: [{t:M, d:1}, {t:R, d:1}, {t:M, d:1}, {t:S, d:1}] },
+      { id: 14, name: "チャチャチャ", pattern: "たん たん ちゃちゃちゃ", image: "小さく足踏みする音が入ったダンスリズムです。", bpm: 120, 
+        notes: [{t:M, d:1}, {t:M, d:1}, {t:S, d:0.5}, {t:S, d:0.5}, {t:S, d:1}] },
+      { id: 15, name: "カリプソ", pattern: "たん ちゃーん うん ちゃーん", image: "南の島のスティールパンが似合うのんびりリズムです。", bpm: 115, 
+        notes: [{t:M, d:0.75}, {t:S, d:1.25}, {t:R, d:0.5}, {t:S, d:1.5}] },
+      { id: 16, name: "フラメンコ", pattern: "たんたん ちゃっちゃ たんたん", image: "手拍子や足踏みが響く力強いリズムです。", bpm: 120, 
+        notes: [{t:M, d:0.5}, {t:M, d:0.5}, {t:S, d:0.5}, {t:S, d:0.5}, {t:M, d:0.5}, {t:M, d:0.5}] },
+      { id: 17, name: "アフロ・グルーヴ", pattern: "たん ん ちゃ たん ちゃん", image: "アフリカの大地を感じる鼓動のリズムです。", bpm: 110, 
+        notes: [{t:M, d:1}, {t:R, d:0.5}, {t:S, d:0.5}, {t:M, d:1}, {t:S, d:1}] },
+      { id: 18, name: "クラーベ", pattern: "たん たん たーん たん たん", image: "ラテン音楽の土台になるノリノリな基本リズムです。", bpm: 110, 
+        notes: [{t:M, d:1}, {t:M, d:1}, {t:M, d:1.5}, {t:S, d:1}, {t:S, d:1}] },
+      { id: 19, name: "わるつ（３びーと）", pattern: "たーん ちゃん ちゃん", image: "3拍子でゆったり。大きく揺れるお姫様ダンスです。", bpm: 90, 
+        notes: [{t:M, d:1}, {t:S, d:1}, {t:S, d:1}] },
+      { id: 20, name: "マーチ（こうしんきょく）", pattern: "たん ちゃん たん ちゃん", image: "「１・２・１・２」と元気に進行する行進曲です。", bpm: 115, 
+        notes: [{t:M, d:1}, {t:S, d:1}, {t:M, d:1}, {t:S, d:1}] },
+      { id: 21, name: "ディスコ", pattern: "たん ちゃ たん ちゃ", image: "足踏みに「ちゃ」が重なるノリノリダンスです。", bpm: 120, 
+        notes: [{t:M, d:0.5}, {t:S, d:0.5}, {t:M, d:0.5}, {t:S, d:0.5}] },
+      { id: 22, name: "レゲエ", pattern: "うん ちゃん うん ちゃん", image: "「うん」とためて「ちゃん」と合わせるゆったりリズムです。", bpm: 85, 
+        notes: [{t:R, d:0.5}, {t:S, d:0.5}, {t:R, d:0.5}, {t:S, d:0.5}] },
+      { id: 23, name: "スカ", pattern: "んちゃ んちゃ んちゃ んちゃ", image: "テンポが速くジャンプしたくなる裏拍ノリの元気なリズムです。", bpm: 135, 
+        notes: [{t:R, d:0.5}, {t:S, d:0.5}, {t:R, d:0.5}, {t:S, d:0.5}, {t:R, d:0.5}, {t:S, d:0.5}, {t:R, d:0.5}, {t:S, d:0.5}] },
+      { id: 24, name: "ビバップ", pattern: "たんちゃ たんちゃ たんちゃ たんちゃ", image: "スピード感いっぱい！かっこよく吹き抜けるジャズです。", bpm: 140, 
+        notes: [{t:M, d:0.25}, {t:S, d:0.25}, {t:M, d:0.25}, {t:S, d:0.25}, {t:M, d:0.25}, {t:S, d:0.25}, {t:M, d:0.25}, {t:S, d:0.25}] },
+      { id: 25, name: "ジャズ・バラード", pattern: "たーん うん ちゃーん うん", image: "夜空を見上げるような、とてもゆったり静かなジャズです。", bpm: 70, 
+        notes: [{t:M, d:1.5}, {t:R, d:0.5}, {t:S, d:1.5}, {t:R, d:0.5}] },
+      { id: 26, name: "ロックンロール", pattern: "たん たん ちゃちゃ たん", image: "エレキギターが似合う、元気いっぱいのリズムです。", bpm: 125, 
+        notes: [{t:M, d:1}, {t:M, d:1}, {t:S, d:0.5}, {t:S, d:0.5}, {t:M, d:1}] },
+      { id: 27, name: "カントリー", pattern: "たん ちゃ たちゃ たん", image: "馬に乗ってパカパカ進むような陽気なリズムです。", bpm: 115, 
+        notes: [{t:M, d:1}, {t:S, d:0.5}, {t:M, d:0.5}, {t:S, d:0.5}, {t:M, d:1}] },
+      { id: 28, name: "ギャロップ（かけあし）", pattern: "たったちゃ たったちゃ", image: "パカパカっと馬が走る疾走感あるリズムです。", bpm: 130, 
+        notes: [{t:M, d:0.33}, {t:M, d:0.33}, {t:S, d:0.34}, {t:M, d:0.33}, {t:M, d:0.33}, {t:S, d:0.34}] },
+      { id: 29, name: "わらべうた", pattern: "たん たん たーん うん", image: "あんたがたどこさ、などで馴染みのある日本のリズムです。", bpm: 95, 
+        notes: [{t:M, d:1}, {t:M, d:1}, {t:M, d:1.5}, {t:R, d:0.5}] },
+      { id: 30, name: "ファンファーレ", pattern: "たん たん たん ちゃーーん", image: "「はじまりはじまりー！」と知らせるお祝いのリズムです。", bpm: 110, 
+        notes: [{t:M, d:0.5}, {t:M, d:0.5}, {t:M, d:0.5}, {t:S, d:1.5}] }
+    ];
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const select = document.getElementById('rhythm-select');
+      rhythmList.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item.id;
+        opt.textContent = `${item.id}. ${item.name}`;
+        select.appendChild(opt);
+      });
+      initClock();
+    });
+
+    /* ==========================================
+       2. Web Audio API 音声合成
+       ========================================== */
+    let audioCtx = null;
+    let currentInstrument = 'taiko';
+    let difficulty = 'easy'; 
+    let guideFreq = 'tokidoki';
+    let tempoFactor = 1.0; 
+
+    function getAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    function setInstrument(inst, btnElem) {
+      currentInstrument = inst;
+      btnElem.parentElement.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('active'));
+      btnElem.classList.add('active');
+    }
+
+    function setDifficulty(diff, btnElem) {
+      difficulty = diff;
+      btnElem.parentElement.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('active'));
+      btnElem.classList.add('active');
+      resetStreak();
+    }
+
+    function setGuide(freq, btnElem) {
+      guideFreq = freq;
+      btnElem.parentElement.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('active'));
+      btnElem.classList.add('active');
+    }
+
+    function setTempo(tempo, btnElem) {
+      if (tempo === 'slow') tempoFactor = 0.75;
+      else if (tempo === 'normal') tempoFactor = 1.0;
+      else if (tempo === 'fast') tempoFactor = 1.25;
+
+      btnElem.parentElement.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('active'));
+      btnElem.classList.add('active');
+      
+      resetStreak();
+      if (isPlaying) {
+        startRhythmLoop();
+      }
+    }
+
+    function playBarHeaderSound() {
+      const ctx = getAudioContext();
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(1200, now);
+      gain.gain.setValueAtTime(0.15, now); 
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(now); osc.stop(now + 0.05);
+    }
+
+    function playSound(type) {
+      if (type === R) return; 
+
+      const ctx = getAudioContext();
+      const now = ctx.currentTime;
+      const isMain = (type === M);
+
+      if (currentInstrument === 'taiko') {
+        if (isMain) {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(150, now);
+          osc.frequency.exponentialRampToValueAtTime(30, now + 0.2);
+          gain.gain.setValueAtTime(1.0, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.start(now); osc.stop(now + 0.2);
+        } else {
+          [660, 880].forEach(freq => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, now);
+            gain.gain.setValueAtTime(0.35, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.start(now); osc.stop(now + 0.12);
+          });
+        }
+
+      } else if (currentInstrument === 'piano') {
+        if (isMain) {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(261.63, now);
+          gain.gain.setValueAtTime(0.6, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.start(now); osc.stop(now + 0.3);
+        } else {
+          [392.00, 523.25].forEach(freq => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now);
+            gain.gain.setValueAtTime(0.35, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.start(now); osc.stop(now + 0.2);
+          });
+        }
+
+      } else if (currentInstrument === 'rappa') {
+        if (isMain) {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(261.63, now);
+          gain.gain.setValueAtTime(0.35, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.start(now); osc.stop(now + 0.25);
+        } else {
+          [659.25, 783.99].forEach(freq => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(freq, now);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.start(now); osc.stop(now + 0.15);
+          });
+        }
+
+      } else if (currentInstrument === 'kotori') {
+        if (isMain) {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(1500, now);
+          osc.frequency.linearRampToValueAtTime(2000, now + 0.1);
+          gain.gain.setValueAtTime(0.35, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.start(now); osc.stop(now + 0.1);
+        } else {
+          [2800, 3500].forEach(freq => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.start(now); osc.stop(now + 0.06);
+          });
+        }
+
+      } else if (currentInstrument === 'inu') {
+        if (isMain) {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(250, now);
+          osc.frequency.exponentialRampToValueAtTime(100, now + 0.14);
+          gain.gain.setValueAtTime(0.4, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.start(now); osc.stop(now + 0.14);
+        } else {
+          [600, 800].forEach(freq => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(freq, now);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.start(now); osc.stop(now + 0.08);
+          });
+        }
+      }
+    }
+
+    function playSuccessFanfare() {
+      const ctx = getAudioContext();
+      const now = ctx.currentTime;
+      const notes = [523.25, 659.25, 783.99, 1046.50]; 
+      notes.forEach((f, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(f, now + idx * 0.08);
+        gain.gain.setValueAtTime(0.4, now + idx * 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.3);
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.start(now + idx * 0.08);
+        osc.stop(now + idx * 0.08 + 0.3);
+      });
+    }
+
+    /* ==========================================
+       3. 精密タイミング計算とループ再生制御
+       ========================================== */
+    let isPlaying = false;
+    let currentTimerId = null;
+    let selectedRhythm = null;
+    
+    let barIndex = 0;             
+    let noteIndexInBar = 0;       
+    let currentBarStartTime = 0;  
+    let barDurationMs = 0;        
+    let noteOffsetsInBar = [];    
+
+    let currentBarCount = 0;
+    let tapsInCurrentBar = 0;
+    let missedInCurrentBar = false;
+
+    function calculateRhythmTiming() {
+      if (!selectedRhythm) return;
+      const effectiveBpm = selectedRhythm.bpm * tempoFactor;
+      const baseInterval = (60 / effectiveBpm) * 1000;
+
+      noteOffsetsInBar = [];
+      let currentOffset = 0;
+
+      selectedRhythm.notes.forEach(note => {
+        noteOffsetsInBar.push({
+          type: note.t,
+          offsetMs: currentOffset,
+          durationMs: baseInterval * note.d
+        });
+        currentOffset += baseInterval * note.d;
+      });
+
+      barDurationMs = currentOffset;
+    }
+
+    function startRhythmLoop() {
+      stopRhythm();
+      if (!selectedRhythm) return;
+
+      calculateRhythmTiming();
+      isPlaying = true;
+      updatePlayBtnUI();
+      barIndex = 0;
+      noteIndexInBar = 0;
+      currentBarStartTime = Date.now();
+      resetStreak();
+
+      let isHeaderBeatThisBar = false;
+
+      function step() {
+        if (!isPlaying) return;
+
+        const now = Date.now();
+        const noteObj = selectedRhythm.notes[noteIndexInBar];
+
+        if (noteIndexInBar === 0) {
+          currentBarStartTime = now;
+          isHeaderBeatThisBar = false;
+
+          flashPatternHead();
+
+          if (guideFreq === 'shibashiba') {
+            isHeaderBeatThisBar = true;
+          } else if (guideFreq === 'futsuu' && barIndex % 2 === 0) {
+            isHeaderBeatThisBar = true;
+          } else if (guideFreq === 'tokidoki' && barIndex % 4 === 0) {
+            isHeaderBeatThisBar = true;
+          }
+
+          if (isHeaderBeatThisBar) {
+            playBarHeaderSound();
+          }
+
+          if (barIndex > 0) {
+            const requiredTaps = selectedRhythm.notes.filter(n => n.t !== R).length;
+            if (!missedInCurrentBar && tapsInCurrentBar >= Math.max(1, Math.floor(requiredTaps * 0.5))) {
+              currentBarCount++;
+              updateStreakUI(currentBarCount);
+
+              if (currentBarCount >= 4) {
+                if (!hasPlayedSuccessThisStreak) {
+                  playSuccessFanfare();
+                  hasPlayedSuccessThisStreak = true;
+                }
+                showFeedback("⭐ 4しょうせつ たっせい！ 大せいかい！ ⭐", true);
+              }
+            } else if (missedInCurrentBar) {
+              currentBarCount = 0;
+              updateStreakUI(0);
+            }
+          }
+
+          tapsInCurrentBar = 0;
+          missedInCurrentBar = false;
+        }
+
+        if (noteObj.t !== R) {
+          playSound(noteObj.t);
+          const isHeaderBeat = (noteIndexInBar === 0) && isHeaderBeatThisBar;
+          animateStageNote(isHeaderBeat);
+        }
+
+        const currentNoteTiming = noteOffsetsInBar[noteIndexInBar];
+        noteIndexInBar++;
+        
+        if (noteIndexInBar >= selectedRhythm.notes.length) {
+          noteIndexInBar = 0;
+          barIndex++;
+        }
+
+        currentTimerId = setTimeout(step, currentNoteTiming.durationMs);
+      }
+
+      step();
+    }
+
+    function animateStageNote(isHeaderBeat) {
+      const noteElem = document.getElementById('stage-note');
+      if (!noteElem) return;
+
+      if (isHeaderBeat) {
+        noteElem.classList.add('header-beat');
+        setTimeout(() => noteElem.classList.remove('header-beat'), 160);
+      } else {
+        noteElem.classList.add('bounce');
+        setTimeout(() => noteElem.classList.remove('bounce'), 100);
+      }
+    }
+
+    function flashPatternHead() {
+      const headElem = document.getElementById('pattern-head');
+      if (headElem) {
+        headElem.classList.add('flash');
+        setTimeout(() => {
+          headElem.classList.remove('flash');
+        }, 220);
+      }
+    }
+
+    function stopRhythm() {
+      isPlaying = false;
+      updatePlayBtnUI();
+      if (currentTimerId) {
+        clearTimeout(currentTimerId);
+        currentTimerId = null;
+      }
+      resetStreak();
+    }
+
+    function resumeRhythm() {
+      if (!selectedRhythm) return;
+      if (!isPlaying) {
+        startRhythmLoop();
+      }
+    }
+
+    function togglePlayPause() {
+      if (isPlaying) {
+        stopRhythm();
+      } else {
+        resumeRhythm();
+      }
+    }
+
+    function updatePlayBtnUI() {
+      const btn = document.getElementById('btn-toggle');
+      if (!btn) return;
+      if (isPlaying) {
+        btn.innerText = "⏹ ていし";
+        btn.className = "ctrl-btn btn-toggle-playing";
+      } else {
+        btn.innerText = "▶ さいかい";
+        btn.className = "ctrl-btn btn-toggle-paused";
+      }
+    }
+
+    /* ボタン操作時のステージ自動フォーカス・位置移動＆擬似カーソル誘導 */
+    let cursorTimeout = null;
+    function focusStageArea() {
+      const stage = document.getElementById('stage-area');
+      const cursor = document.getElementById('visual-cursor');
+      if (stage) {
+        stage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        stage.focus();
+      }
+
+      if (cursor) {
+        cursor.classList.add('active');
+        if (cursorTimeout) clearTimeout(cursorTimeout);
+        cursorTimeout = setTimeout(() => {
+          cursor.classList.remove('active');
+        }, 1800);
+      }
+    }
+
+    function prevRhythm() {
+      if (rhythmList.length === 0) return;
+      let prevId = rhythmList.length;
+      if (selectedRhythm) {
+        prevId = selectedRhythm.id - 1;
+        if (prevId < 1) prevId = rhythmList.length;
+      }
+      document.getElementById('rhythm-select').value = prevId;
+      onRhythmSelectChange();
+      focusStageArea();
+    }
+
+    function nextRhythm() {
+      if (rhythmList.length === 0) return;
+      let nextId = 1;
+      if (selectedRhythm) {
+        nextId = (selectedRhythm.id % rhythmList.length) + 1;
+      }
+      document.getElementById('rhythm-select').value = nextId;
+      onRhythmSelectChange();
+      focusStageArea();
+    }
+
+    function randomRhythm() {
+      const randomIndex = Math.floor(Math.random() * rhythmList.length);
+      selectedRhythm = rhythmList[randomIndex];
+      document.getElementById('rhythm-select').value = selectedRhythm.id;
+      updateDisplay();
+      startRhythmLoop();
+      focusStageArea();
+    }
+
+    function onRhythmSelectChange() {
+      const val = document.getElementById('rhythm-select').value;
+      if (!val) {
+        stopRhythm();
+        selectedRhythm = null;
+        document.getElementById('disp-name').innerText = "りずむを えらんでね";
+        document.getElementById('disp-pattern').innerText = "おとが なります";
+        document.getElementById('disp-image').innerText = "4しょうせつ つづけて 叩くと ファンファーレがなるよ！";
+        return;
+      }
+
+      selectedRhythm = rhythmList.find(r => r.id == val);
+      updateDisplay();
+      startRhythmLoop();
+    }
+
+    function updateDisplay() {
+      if (!selectedRhythm) return;
+      document.getElementById('disp-name').innerText = `${selectedRhythm.id}. ${selectedRhythm.name}`;
+      
+      const parts = selectedRhythm.pattern.split(' ');
+      const firstWord = parts[0];
+      const restWords = parts.slice(1).join(' ');
+      document.getElementById('disp-pattern').innerHTML = `<span id="pattern-head">${firstWord}</span> ${restWords}`;
+      
+      document.getElementById('disp-image').innerText = selectedRhythm.image;
+    }
+
+    /* ==========================================
+       4. タップ判定ロジック
+       ========================================== */
+    let hasPlayedSuccessThisStreak = false;
+
+    function handleTap() {
+      if (!isPlaying || !selectedRhythm || noteOffsetsInBar.length === 0) {
+        showFeedback("りずむを えらんでね！", false);
+        return;
+      }
+
+      const now = Date.now();
+      let minDiff = Infinity;
+      let matchedNoteType = null;
+
+      [-1, 0, 1].forEach(barOffset => {
+        const barStart = currentBarStartTime + (barOffset * barDurationMs);
+        noteOffsetsInBar.forEach(note => {
+          const targetTime = barStart + note.offsetMs;
+          const diff = Math.abs(now - targetTime);
+          if (diff < minDiff) {
+            minDiff = diff;
+            matchedNoteType = note.type;
+          }
+        });
+      });
+
+      let tolerance = 320; // ゆるめ
+      if (difficulty === 'normal') tolerance = 200; // ふつう
+      if (difficulty === 'hard') tolerance = 100;   // きびしめ
+
+      const isTimingGood = (minDiff <= tolerance);
+
+      if (isTimingGood && matchedNoteType === R) {
+        missedInCurrentBar = true;
+        resetStreak();
+        showFeedback("「ん」はおやすみだよ！", false);
+        return;
+      }
+
+      if (isTimingGood) {
+        tapsInCurrentBar++;
+        showFeedback(`いいかんじ！ (${currentBarCount} / 4しょうせつ)`, true);
+      } else {
+        missedInCurrentBar = true;
+        resetStreak();
+        showFeedback("おしい！ りずむに あわせよう", false);
+      }
+    }
+
+    function resetStreak() {
+      currentBarCount = 0;
+      tapsInCurrentBar = 0;
+      missedInCurrentBar = false;
+      hasPlayedSuccessThisStreak = false;
+      updateStreakUI(0);
+    }
+
+    function updateStreakUI(barCount) {
+      const fill = document.getElementById('progress-fill');
+      const text = document.getElementById('streak-text');
+      const target = 4;
+
+      const percent = Math.min(100, (barCount / target) * 100);
+      fill.style.width = `${percent}%`;
+
+      if (barCount >= target) {
+        text.innerText = `🎉 4しょうせつ たっせい！ すごいね！`;
+        text.style.color = '#e63946';
+      } else {
+        text.innerText = `4しょうせつ つづけて りずむに のろう！ (${barCount} / 4しょうせつ)`;
+        text.style.color = '#2a9d8f';
+      }
+    }
+
+    function showFeedback(text, isSuccess) {
+      const msgElem = document.getElementById('feedback-msg');
+      msgElem.innerText = text;
+      msgElem.style.color = isSuccess ? '#ffb703' : '#e63946';
+      msgElem.classList.add('show');
+      setTimeout(() => {
+        msgElem.classList.remove('show');
+      }, 500);
+    }
+
+    /* ==========================================
+       5. 時計＆終了モーダル演出
+       ========================================== */
+    function initClock() {
+      const face = document.getElementById('clock-face');
+      face.innerHTML = '';
+
+      for (let i = 0; i < 60; i++) {
+        const angle = (i * 6) * Math.PI / 180;
+        const isHourMark = i % 5 === 0;
+        const r1 = 88;
+        const r2 = isHourMark ? 78 : 84;
+        const x1 = 100 + r1 * Math.sin(angle);
+        const y1 = 100 - r1 * Math.cos(angle);
+        const x2 = 100 + r2 * Math.sin(angle);
+        const y2 = 100 - r2 * Math.cos(angle);
+
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', x1); line.setAttribute('y1', y1);
+        line.setAttribute('x2', x2); line.setAttribute('y2', y2);
+        line.setAttribute('stroke', isHourMark ? '#1d3557' : '#a8dadc');
+        line.setAttribute('stroke-width', isHourMark ? '2.5' : '1');
+        face.appendChild(line);
+      }
+
+      for (let i = 1; i <= 12; i++) {
+        const angle = (i * 30) * Math.PI / 180;
+        const r = 64;
+        const x = 100 + r * Math.sin(angle);
+        const y = 100 - r * Math.cos(angle);
+
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', x);
+        text.setAttribute('y', y + 5);
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('font-size', '15');
+        text.setAttribute('font-weight', 'bold');
+
+        if ([3, 6, 9, 12].includes(i)) {
+          text.setAttribute('fill', '#e63946');
+        } else {
+          text.setAttribute('fill', '#1d3557');
+        }
+        text.textContent = i;
+        face.appendChild(text);
+      }
+
+      updateClock();
+      setInterval(updateClock, 1000);
+    }
+
+    function updateClock() {
+      const now = new Date();
+      const hrs = now.getHours();
+      const mins = now.getMinutes();
+      const secs = now.getSeconds();
+
+      const hourAngle = ((hrs % 12) + mins / 60) * 30;
+      const minAngle = (mins + secs / 60) * 6;
+
+      document.getElementById('hour-hand').setAttribute('transform', `rotate(${hourAngle} 100 100)`);
+      document.getElementById('minute-hand').setAttribute('transform', `rotate(${minAngle} 100 100)`);
+
+      const dispHrs = (hrs % 12 === 0) ? 12 : (hrs % 12);
+      document.getElementById('time-text-display').innerText = `いま ${dispHrs}じ ${mins}ふん です`;
+    }
+
+    function endApp() {
+      stopRhythm();
+      document.getElementById('overlay-modal').style.display = 'flex';
+      startParticleEffect();
+    }
+
+    function closeModal() {
+      document.getElementById('overlay-modal').style.display = 'none';
+    }
+
+    function startParticleEffect() {
+      const c = document.getElementById('effect-canvas');
+      const ctx = c.getContext('2d');
+      c.width = window.innerWidth;
+      c.height = window.innerHeight;
+
+      const particles = [];
+      const emojis = ['🎵', '🎶', '🎺', '🎷', '🥁', '🎸', '🎹', '✨', '🌟'];
+
+      for (let i = 0; i < 70; i++) {
+        particles.push({
+          x: Math.random() * c.width,
+          y: Math.random() * c.height - c.height,
+          emoji: emojis[Math.floor(Math.random() * emojis.length)],
+          speedY: Math.random() * 3 + 2,
+          speedX: Math.random() * 2 - 1,
+          size: Math.random() * 22 + 20
+        });
+      }
+
+      let count = 0;
+      const interval = setInterval(() => {
+        ctx.clearRect(0, 0, c.width, c.height);
+
+        particles.forEach(p => {
+          ctx.font = `${p.size}px sans-serif`;
+          ctx.fillText(p.emoji, p.x, p.y);
+
+          p.y += p.speedY;
+          p.x += p.speedX;
+
+          if (p.y > c.height) {
+            p.y = -30;
+            p.x = Math.random() * c.width;
+          }
+        });
+
+        count++;
+        if (count > 250) {
+          clearInterval(interval);
+          ctx.clearRect(0, 0, c.width, c.height);
+        }
+      }, 20);
+    }
+  </script>
+</body>
+</html>
